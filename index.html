@@ -107,13 +107,25 @@
   <hr />
 
   <section>
+    <h2>Trending This week</h2>
+    <p class="sub">Circles with the most member messages in the current week (<span id="tw-range"></span>).</p>
+    <table id="trendingTable">
+      <thead><tr>
+        <th>Circle ID</th><th>Sphere</th><th>Seed thread</th><th>Members</th>
+        <th class="num">Messages this week</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section>
     <h2>Circles that took off</h2>
-    <p class="sub">The 6 top group Circles by member messages — cumulative growth shows where each one caught fire.</p>
+    <p class="sub">The 6 top group Circles by member messages (all-time) — cumulative growth shows where each one caught fire.</p>
     <div class="chart-box" style="height:320px"><canvas id="breakoutChart"></canvas></div>
     <p class="caption" id="cap-break"></p>
     <table id="breakoutTable">
       <thead><tr>
-        <th>Circle (Sphere)</th><th>Seed thread</th><th>Members</th>
+        <th>Circle ID</th><th>Circle (Sphere)</th><th>Seed thread</th><th>Members</th>
         <th class="num">Member msgs</th><th>Take-off week</th>
       </tr></thead>
       <tbody></tbody>
@@ -196,6 +208,7 @@ const DATA = {
   ],
   "breakout": [
     {
+      "circle_id": "019ff812-bb43-7266-bec7-2e3d23a89eda",
       "sphere": "LGBTQ+",
       "thread": "LGBTQ+ Community Connect",
       "members": "Jessie, Behk, Rich +5",
@@ -210,6 +223,7 @@ const DATA = {
       ]
     },
     {
+      "circle_id": "019fe401-eeb4-724a-a48e-c630afdc26a8",
       "sphere": "TV Shows",
       "thread": "Television Binge Recommendations",
       "members": "Nir, Dennis, Steven +5",
@@ -224,6 +238,7 @@ const DATA = {
       ]
     },
     {
+      "circle_id": "019ff80e-1327-72e8-8dc7-0869e9fced54",
       "sphere": "Style & Fashion",
       "thread": "Unusual Collections",
       "members": "Steven, Jessie, Pragathi +5",
@@ -238,6 +253,7 @@ const DATA = {
       ]
     },
     {
+      "circle_id": "01a016d7-191e-734d-9328-adf89990ddf9",
       "sphere": "Dating & Romance",
       "thread": "Single Life Expectations",
       "members": "Nir, Josh, Dare +3",
@@ -252,6 +268,7 @@ const DATA = {
       ]
     },
     {
+      "circle_id": "01a027bc-51f4-703f-9d7a-13b86ebcda16",
       "sphere": "Gaming",
       "thread": "Social Icebreakers",
       "members": "Nir, Dennis, Jase +3",
@@ -266,6 +283,7 @@ const DATA = {
       ]
     },
     {
+      "circle_id": "019fd83f-fe1a-769b-bcf6-7ba1d5735f0c",
       "sphere": "Science & Technology",
       "thread": "Top 5 Movie Recommendations",
       "members": "Shay, Ariana, Tara +5",
@@ -278,6 +296,64 @@ const DATA = {
         0,
         0
       ]
+    }
+  ],
+  "trending": [
+    {
+      "circle_id": "01a060ad-b287-721c-9328-dde38d9352e2",
+      "sphere": "Literature",
+      "thread": "Living in Fiction",
+      "members": "Adir, Storm, Matt +5",
+      "msgs": 31
+    },
+    {
+      "circle_id": "01a059ed-e938-75a9-aed8-690a5eed8996",
+      "sphere": "—",
+      "thread": "—",
+      "members": "Heather, Max, Matt +2",
+      "msgs": 31
+    },
+    {
+      "circle_id": "01a05ac7-387c-7589-9b57-bc7ada6a645e",
+      "sphere": "Dating & Romance",
+      "thread": "Social Wingman Advice",
+      "members": "Addie, Paul, Heather +5",
+      "msgs": 24
+    },
+    {
+      "circle_id": "01a05e17-3933-768c-955a-8b5cc0cb0312",
+      "sphere": "Meet New People",
+      "thread": "Making New Friends",
+      "members": "Marco, AJ, Paul +5",
+      "msgs": 23
+    },
+    {
+      "circle_id": "01a05ad5-8ab4-77a8-ace9-1a46502b4c2e",
+      "sphere": "Psychology",
+      "thread": "Reaching Personal Closure",
+      "members": "Chris, Aestheticash, Quenessa +5",
+      "msgs": 20
+    },
+    {
+      "circle_id": "01a06529-b54e-763b-bb8e-992b5c40fbfb",
+      "sphere": "Memes & Funny",
+      "thread": "Unusual Nicknames",
+      "members": "Kelly, Michael, Nathan +3",
+      "msgs": 19
+    },
+    {
+      "circle_id": "01a06994-9d8a-77ec-8840-faac6db53f09",
+      "sphere": "Meet New People",
+      "thread": "Group Chat Interest",
+      "members": "Harley, Sebastian",
+      "msgs": 15
+    },
+    {
+      "circle_id": "01a05f7e-f446-75ec-abc8-60fa14e622e5",
+      "sphere": "Meet New People",
+      "thread": "Seeking Social Connection",
+      "members": "Chad, Dee, Doug",
+      "msgs": 15
     }
   ],
   "kpis": {
@@ -393,12 +469,24 @@ new Chart(document.getElementById("breakoutChart"), {
   options: baseOpts("Cumulative member messages", true),
 });
 
+// Trending This week table
+const mono = "ui-monospace, SFMono-Regular, Menlo, monospace";
+document.getElementById("tw-range").textContent = "week of " + DATA.weeks[DATA.weeks.length-1] + " · through " + DATA.kpis.last;
+const tw = document.querySelector("#trendingTable tbody");
+(DATA.trending || []).forEach(c => {
+  tw.insertAdjacentHTML("beforeend",
+    `<tr><td style="font-family:${mono};font-size:11px">${c.circle_id}</td>`+
+    `<td>${c.sphere}</td><td>${c.thread}</td><td>${c.members}</td>`+
+    `<td class="num">${fmt(c.msgs)}</td></tr>`);
+});
+
 // Breakout table
 const bt = document.querySelector("#breakoutTable tbody");
 DATA.breakout.forEach(c => {
   const tot = c.weekly.reduce((a,b)=>a+b,0);
   bt.insertAdjacentHTML("beforeend",
-    `<tr><td>${c.sphere}</td><td>${c.thread}</td><td>${c.members}</td>`+
+    `<tr><td style="font-family:${mono};font-size:11px">${c.circle_id||""}</td>`+
+    `<td>${c.sphere}</td><td>${c.thread}</td><td>${c.members}</td>`+
     `<td class="num">${fmt(tot)}</td><td>${peakWeek(c.weekly)}</td></tr>`);
 });
 
