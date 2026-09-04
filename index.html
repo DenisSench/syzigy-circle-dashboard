@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Syzigy · Circle Performance Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --stroke: #30363d;
+    --text: #e6edf3;
+    --text-2: #9da7b3;
+    --text-3: #6e7681;
+    --accent: #4493f8;
+    --green: #3fb950;
+    --neutral: #6e7681;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 24px 64px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  h1 { font-size: 24px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  h2 { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+  .sub { color: var(--text-2); font-size: 13px; margin: 4px 0 0; }
+  .caption { color: var(--text-3); font-size: 12px; margin: 8px 0 0; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 28px 0; }
+  .kpi { }
+  .kpi .val { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+  .kpi .val.accent { color: var(--accent); }
+  .kpi .val.green { color: var(--green); }
+  .kpi .lbl { color: var(--text-2); font-size: 12px; margin-top: 2px; }
+  hr { border: 0; border-top: 1px solid var(--stroke); margin: 28px 0; }
+  section { margin: 32px 0; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+  .chart-box { position: relative; width: 100%; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--stroke);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--stroke); }
+  th { color: var(--text-2); font-weight: 600; font-size: 12px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr:last-child td { border-bottom: 0; }
+  .foot { color: var(--text-3); font-size: 12px; margin-top: 40px; border-top: 1px solid var(--stroke); padding-top: 16px; }
+  @media (max-width: 760px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Circle Performance Dashboard</h1>
+    <span class="sub" id="daterange"></span>
+  </header>
+
+  <div class="kpis">
+    <div class="kpi"><div class="val accent" id="k-cum">—</div><div class="lbl">Active Circles (cumulative)</div></div>
+    <div class="kpi"><div class="val" id="k-total">—</div><div class="lbl">Total messages</div></div>
+    <div class="kpi"><div class="val green" id="k-member">—</div><div class="lbl" id="k-member-lbl">Member messages</div></div>
+    <div class="kpi"><div class="val" id="k-peak">—</div><div class="lbl" id="k-peak-lbl">Peak weekly messages</div></div>
+  </div>
+
+  <hr />
+
+  <section>
+    <h2>Compounding active Circles</h2>
+    <p class="sub">Distinct Circles that have hosted at least one member message, accumulated week over week.</p>
+    <div class="chart-box" style="height:300px"><canvas id="cumChart"></canvas></div>
+    <p class="caption" id="cap-cum"></p>
+  </section>
+
+  <section>
+    <h2>Weekly Circle messages</h2>
+    <p class="sub">Messages sent per week, split by member (organic) vs seeded (staff + System prompts).</p>
+    <div class="chart-box" style="height:300px"><canvas id="msgChart"></canvas></div>
+    <p class="caption" id="cap-msg"></p>
+  </section>
+
+  <div class="grid-2">
+    <section>
+      <h2>Weekly active Circles</h2>
+      <div class="chart-box" style="height:220px"><canvas id="activeChart"></canvas></div>
+      <p class="caption">Distinct Circles with ≥1 member message that week.</p>
+    </section>
+    <section>
+      <h2>New Circles activated</h2>
+      <div class="chart-box" style="height:220px"><canvas id="newChart"></canvas></div>
+      <p class="caption">Circles whose first member message landed that week.</p>
+    </section>
+  </div>
+
+  <hr />
+
+  <section>
+    <h2>Circles that took off</h2>
+    <p class="sub">The 6 top group Circles by member messages — cumulative growth shows where each one caught fire.</p>
+    <div class="chart-box" style="height:320px"><canvas id="breakoutChart"></canvas></div>
+    <p class="caption" id="cap-break"></p>
+    <table id="breakoutTable">
+      <thead><tr>
+        <th>Circle (Sphere)</th><th>Seed thread</th><th>Members</th>
+        <th class="num">Member msgs</th><th>Take-off week</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Weekly detail</h2>
+    <table id="detailTable">
+      <thead><tr>
+        <th>Week</th><th class="num">Member msgs</th><th class="num">Seeded msgs</th>
+        <th class="num">Total</th><th class="num">Active Circles</th>
+        <th class="num">New Circles</th><th class="num">Cumulative</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="caption" id="cap-detail"></p>
+  </section>
+
+  <p class="foot" id="foot"></p>
+</div>
+
+<script>
+// ---- DATA (from CometChat export analysis) --------------------------------
+const DATA = {
+  weeks:  ["Jul 20","Jul 27","Aug 03","Aug 10","Aug 17","Aug 24","Aug 31"],
+  member: [380, 978, 1543, 2261, 1881, 1507, 366],
+  seeded: [546, 972, 1121, 1466, 1445, 1516, 213],
+  total:  [926, 1950, 2664, 3727, 3326, 3023, 579],
+  active: [35, 160, 225, 182, 165, 170, 94],
+  neww:   [34, 154, 196, 144, 123, 133, 58],
+  cum:    [35, 189, 385, 529, 652, 785, 843],
+  breakout: [
+    { sphere: "LGBTQ+", thread: "LGBTQ+ Community Connect", members: "Jessie, Behk, Rich +5", weekly: [0,0,0,11,140,1,0] },
+    { sphere: "TV Shows", thread: "Television Binge Recommendations", members: "Nir, Dennis, Steven +5", weekly: [0,0,20,115,0,0,0] },
+    { sphere: "Style & Fashion", thread: "Unusual Collections", members: "Steven, Jessie, Pragathi +5", weekly: [0,0,0,109,11,0,0] },
+    { sphere: "Dating & Romance", thread: "Single Life Expectations", members: "Nir, Josh, Dare +3", weekly: [0,0,0,0,117,0,0] },
+    { sphere: "Gaming", thread: "Social Icebreakers", members: "Nir, Dennis, Jase +3", weekly: [0,0,0,0,64,50,1] },
+    { sphere: "Science & Technology", thread: "Top 5 Movie Recommendations", members: "Shay, Ariana, Tara +5", weekly: [0,0,113,0,0,0,0] },
+  ],
+  kpis: {
+    cum_circles: 843, total_msgs: 16195, member_msgs: 8916, member_pct: 55,
+    peak_week_msgs: 3727, peak_week_label: "Aug 10",
+    first: "Jul 20, 2026", last: "Sep 02, 2026", last_partial: true,
+  },
+};
+// --------------------------------------------------------------------------
+
+const C = { text:"#e6edf3", text2:"#9da7b3", text3:"#6e7681", grid:"#21262d",
+            accent:"#4493f8", green:"#3fb950", neutral:"#6e7681" };
+const PALETTE = ["#4493f8","#3fb950","#db61a2","#e3b341","#a371f7","#f0883e"];
+const fmt = n => n.toLocaleString();
+const kfmt = n => (n >= 1000 ? (n/1000).toFixed(1).replace(/\.0$/,"") + "k" : "" + n);
+const cumsum = arr => arr.reduce((a,v,i)=>{a.push((a[i-1]||0)+v);return a;},[]);
+const peakWeek = arr => DATA.weeks[arr.indexOf(Math.max(...arr))];
+const star = DATA.kpis.last_partial ? " *" : "";
+const wkLabels = DATA.weeks.map((w,i)=> i===DATA.weeks.length-1 ? w+star : w);
+
+Chart.defaults.color = C.text2;
+Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+Chart.defaults.borderColor = C.grid;
+
+const axes = (yTitle) => ({
+  x: { grid: { color: C.grid }, ticks: { color: C.text2 } },
+  y: { beginAtZero: true, title: { display: true, text: yTitle, color: C.text3 },
+       grid: { color: C.grid }, ticks: { color: C.text2 } },
+});
+const baseOpts = (yTitle, legend=false) => ({
+  responsive: true, maintainAspectRatio: false,
+  interaction: { mode: "index", intersect: false },
+  plugins: { legend: { display: legend, labels: { color: C.text2, usePointStyle: true, boxWidth: 8 } } },
+  scales: axes(yTitle),
+});
+
+// KPIs
+document.getElementById("daterange").textContent =
+  DATA.kpis.first + " – " + DATA.kpis.last + (DATA.kpis.last_partial ? " (final week partial)" : "");
+document.getElementById("k-cum").textContent = fmt(DATA.kpis.cum_circles);
+document.getElementById("k-total").textContent = kfmt(DATA.kpis.total_msgs);
+document.getElementById("k-member").textContent = kfmt(DATA.kpis.member_msgs);
+document.getElementById("k-member-lbl").textContent = "Member messages (" + DATA.kpis.member_pct + "%)";
+document.getElementById("k-peak").textContent = fmt(DATA.kpis.peak_week_msgs);
+document.getElementById("k-peak-lbl").textContent = "Peak weekly messages (" + DATA.kpis.peak_week_label + ")";
+
+const srcCaption = "Source: CometChat export, " + DATA.kpis.first + " – " + DATA.kpis.last +
+  (DATA.kpis.last_partial ? " · * final week partial" : "");
+document.getElementById("cap-cum").textContent = "X: week (Monday start) · Y: cumulative distinct active Circles · " + srcCaption;
+document.getElementById("cap-msg").textContent = "X: week (Monday start) · Y: messages · " + srcCaption;
+document.getElementById("cap-break").textContent = "X: week (Monday start) · Y: cumulative member messages in that Circle · " + srcCaption;
+document.getElementById("cap-detail").textContent = DATA.kpis.last_partial ? "* final week is partial." : "";
+
+// Compounding active circles
+new Chart(document.getElementById("cumChart"), {
+  type: "line",
+  data: { labels: wkLabels, datasets: [{
+    label: "Cumulative active Circles", data: DATA.cum,
+    borderColor: C.accent, backgroundColor: "rgba(68,147,248,0.15)",
+    fill: true, tension: 0.25, pointRadius: 3, borderWidth: 2 }] },
+  options: baseOpts("Circles"),
+});
+
+// Weekly messages (stacked)
+new Chart(document.getElementById("msgChart"), {
+  type: "bar",
+  data: { labels: wkLabels, datasets: [
+    { label: "Member messages", data: DATA.member, backgroundColor: C.green },
+    { label: "Seeded (staff + System)", data: DATA.seeded, backgroundColor: C.neutral } ] },
+  options: { ...baseOpts("Messages", true),
+    scales: { x: { stacked: true, grid: { color: C.grid }, ticks: { color: C.text2 } },
+              y: { stacked: true, beginAtZero: true, title: { display: true, text: "Messages", color: C.text3 },
+                   grid: { color: C.grid }, ticks: { color: C.text2 } } } },
+});
+
+// Weekly active
+new Chart(document.getElementById("activeChart"), {
+  type: "bar",
+  data: { labels: wkLabels, datasets: [{ label: "Active Circles", data: DATA.active, backgroundColor: C.accent }] },
+  options: baseOpts("Circles"),
+});
+
+// New circles
+new Chart(document.getElementById("newChart"), {
+  type: "bar",
+  data: { labels: wkLabels, datasets: [{ label: "New Circles", data: DATA.neww, backgroundColor: C.green }] },
+  options: baseOpts("Circles"),
+});
+
+// Breakout (cumulative lines)
+new Chart(document.getElementById("breakoutChart"), {
+  type: "line",
+  data: { labels: DATA.weeks, datasets: DATA.breakout.map((c,i)=>({
+    label: c.sphere, data: cumsum(c.weekly),
+    borderColor: PALETTE[i % PALETTE.length], backgroundColor: PALETTE[i % PALETTE.length],
+    fill: false, tension: 0.25, pointRadius: 2, borderWidth: 2 })) },
+  options: baseOpts("Cumulative member messages", true),
+});
+
+// Breakout table
+const bt = document.querySelector("#breakoutTable tbody");
+DATA.breakout.forEach(c => {
+  const tot = c.weekly.reduce((a,b)=>a+b,0);
+  bt.insertAdjacentHTML("beforeend",
+    `<tr><td>${c.sphere}</td><td>${c.thread}</td><td>${c.members}</td>`+
+    `<td class="num">${fmt(tot)}</td><td>${peakWeek(c.weekly)}</td></tr>`);
+});
+
+// Detail table
+const dt = document.querySelector("#detailTable tbody");
+DATA.weeks.forEach((w,i)=>{
+  dt.insertAdjacentHTML("beforeend",
+    `<tr><td>${w}${i===DATA.weeks.length-1?star:""}</td>`+
+    `<td class="num">${fmt(DATA.member[i])}</td><td class="num">${fmt(DATA.seeded[i])}</td>`+
+    `<td class="num">${fmt(DATA.total[i])}</td><td class="num">${DATA.active[i]}</td>`+
+    `<td class="num">${DATA.neww[i]}</td><td class="num">${DATA.cum[i]}</td></tr>`);
+});
+
+document.getElementById("foot").textContent =
+  "Weeks start Monday. Seeded = messages from staff (Kelly, Nir) and System thread prompts. " +
+  "Source: CometChat export · " + DATA.kpis.first + " – " + DATA.kpis.last + ".";
+</script>
+</body>
+</html>
