@@ -69,7 +69,7 @@
   </header>
 
   <div class="kpis">
-    <div class="kpi"><div class="val accent" id="k-mau">—</div><div class="lbl">September MAU (unique active users)</div></div>
+    <div class="kpi"><div class="val accent" id="k-mau">—</div><div class="lbl">Sept active chatters (sent ≥1 msg)</div></div>
     <div class="kpi"><div class="val green" id="k-member">—</div><div class="lbl" id="k-member-lbl">Member messages</div></div>
     <div class="kpi"><div class="val" id="k-total">—</div><div class="lbl">Total messages (Sep 22–28)</div></div>
     <div class="kpi"><div class="val" id="k-active">—</div><div class="lbl">Active Circles (Sep 22–28)</div></div>
@@ -503,7 +503,7 @@ DATA.weeks.forEach((w,i)=>{
 });
 
 document.getElementById("foot").textContent =
-  "Scoped to Sep 22–28, 2026 (daily). September MAU = unique users with ≥1 message in Sep 1–28. " +
+  "Scoped to Sep 22–28, 2026 (daily). Sept active chatters = unique users who sent ≥1 message in Sep 1–28 (chat-derived; true MAU incl. lurkers lives in product analytics). " +
   "Seeded = messages from staff (Kelly, Nir) and System thread prompts. " +
   "Source: CometChat export · " + DATA.kpis.first + " – " + DATA.kpis.last + ".";
 </script>
